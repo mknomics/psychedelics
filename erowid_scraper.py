@@ -25,6 +25,8 @@ import time
 import random
 import logging
 import re
+import json
+import os
 from typing import List, Dict, Optional, Tuple, Any
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -44,6 +46,7 @@ BASE_URL = 'https://www.erowid.org'
 TIMEOUT = 30
 MIN_SLEEP = 1
 MAX_SLEEP = 3
+PROGRESS_FILE = 'scraping_progress.json'
 
 def get_session() -> requests.Session:
     """Create a requests session with retry logic."""
@@ -117,6 +120,90 @@ def parse_dates(raw: str) -> Optional[datetime]:
                 pass
     
     return None
+
+class ProgressTracker:
+    """Handles progress tracking for scraping sessions."""
+    
+    def __init__(self, progress_file: str = PROGRESS_FILE):
+        self.progress_file = progress_file
+        self.progress_data = self.load_progress()
+    
+    def load_progress(self) -> Dict[str, Any]:
+        """Load existing progress from file."""
+        if os.path.exists(self.progress_file):
+            try:
+                with open(self.progress_file, 'r') as f:
+                    data = json.load(f)
+                    logger.info(f"Loaded existing progress: {len(data.get('completed_pages', []))} pages completed")
+                    return data
+            except Exception as e:
+                logger.error(f"Failed to load progress file: {e}")
+        
+        # Return empty progress structure
+        return {
+            'session_start': datetime.now().isoformat(),
+            'last_updated': datetime.now().isoformat(),
+            'completed_pages': [],  # List of completed page identifiers
+            'completed_experiences': [],  # List of completed experience IDs
+            'total_scraped': 0,
+            'substance_progress': {}  # Track progress per substance
+        }
+    
+    def save_progress(self):
+        """Save current progress to file."""
+        try:
+            self.progress_data['last_updated'] = datetime.now().isoformat()
+            with open(self.progress_file, 'w') as f:
+                json.dump(self.progress_data, f, indent=2, default=str)
+            logger.debug(f"Progress saved: {self.progress_data['total_scraped']} experiences")
+        except Exception as e:
+            logger.error(f"Failed to save progress: {e}")
+    
+    def is_page_completed(self, substance_id: str, page_num: int) -> bool:
+        """Check if a specific page has been completed."""
+        page_id = f"{substance_id}_page_{page_num}"
+        return page_id in self.progress_data['completed_pages']
+    
+    def mark_page_completed(self, substance_id: str, page_num: int, experience_count: int):
+        """Mark a page as completed."""
+        page_id = f"{substance_id}_page_{page_num}"
+        if page_id not in self.progress_data['completed_pages']:
+            self.progress_data['completed_pages'].append(page_id)
+            self.progress_data['total_scraped'] += experience_count
+            
+            # Update substance progress
+            if substance_id not in self.progress_data['substance_progress']:
+                self.progress_data['substance_progress'][substance_id] = {
+                    'completed_pages': 0,
+                    'experiences_scraped': 0
+                }
+            
+            self.progress_data['substance_progress'][substance_id]['completed_pages'] += 1
+            self.progress_data['substance_progress'][substance_id]['experiences_scraped'] += experience_count
+            
+            self.save_progress()
+    
+    def add_experience(self, experience_id: int):
+        """Track a successfully scraped experience."""
+        if experience_id not in self.progress_data['completed_experiences']:
+            self.progress_data['completed_experiences'].append(experience_id)
+    
+    def get_resume_info(self) -> Dict[str, Any]:
+        """Get information about where to resume."""
+        return {
+            'total_completed_pages': len(self.progress_data['completed_pages']),
+            'total_experiences': self.progress_data['total_scraped'],
+            'substance_progress': self.progress_data['substance_progress'],
+            'session_start': self.progress_data['session_start'],
+            'last_updated': self.progress_data['last_updated']
+        }
+    
+    def clear_progress(self):
+        """Clear all progress (start fresh)."""
+        if os.path.exists(self.progress_file):
+            os.remove(self.progress_file)
+        self.progress_data = self.load_progress()
+        logger.info("Progress cleared, starting fresh")
 
 def get_total_pages(url: str, session: requests.Session) -> int:
     """Get the total number of pages for a listing."""
@@ -367,11 +454,12 @@ def parse_detail(detail_url: str, session: requests.Session) -> Dict[str, Any]:
     
     return details
 
-def main(limit_per_page=None):
+def main(limit_per_page=None, clear_progress=False):
     """Main function to orchestrate the scraping process.
     
     Args:
         limit_per_page: Optional limit on number of experiences to scrape per listing page
+        clear_progress: If True, start fresh by clearing existing progress
     """
     # URLs to scrape
     listing_urls = [
@@ -383,33 +471,65 @@ def main(limit_per_page=None):
     session = get_session()
     all_experiences = []
     
+    # Initialize progress tracker
+    progress = ProgressTracker()
+    
+    if clear_progress:
+        progress.clear_progress()
+    
+    # Show resume information
+    resume_info = progress.get_resume_info()
+    if resume_info['total_completed_pages'] > 0:
+        logger.info(f"Resuming previous session:")
+        logger.info(f"  Session started: {resume_info['session_start']}")
+        logger.info(f"  Last updated: {resume_info['last_updated']}")
+        logger.info(f"  Completed pages: {resume_info['total_completed_pages']}")
+        logger.info(f"  Experiences scraped: {resume_info['total_experiences']}")
+        for substance, stats in resume_info['substance_progress'].items():
+            logger.info(f"  S1={substance}: {stats['completed_pages']} pages, {stats['experiences_scraped']} experiences")
+    else:
+        logger.info("Starting fresh scraping session")
+    
     # Process each listing page
     for base_listing_url in listing_urls:
+        # Extract substance ID for progress tracking
+        substance_id = base_listing_url.split('S1=')[1]
+        
         # Get total number of pages for this listing
         total_pages = get_total_pages(base_listing_url, session)
-        logger.info(f"Processing {base_listing_url} - Found {total_pages} pages")
+        logger.info(f"Processing S1={substance_id} - Found {total_pages} pages")
         
         # Iterate through all pages
         for page_num in range(1, total_pages + 1):
+            # Check if this page was already completed
+            if progress.is_page_completed(substance_id, page_num):
+                logger.info(f"Skipping S1={substance_id} page {page_num}/{total_pages} - already completed")
+                continue
+            
             # Construct URL for this page
             start_offset = (page_num - 1) * 100
             page_url = f"{base_listing_url}&ShowViews=0&Cellar=0&Start={start_offset}&Max=100"
             
-            logger.info(f"Processing page {page_num}/{total_pages}: {page_url}")
+            logger.info(f"Processing S1={substance_id} page {page_num}/{total_pages}")
             experiences = parse_listing(page_url, session)
+            
+            if not experiences:
+                logger.warning(f"No experiences found on S1={substance_id} page {page_num}")
+                continue
             
             # Apply limit if specified (for testing)
             if limit_per_page:
                 experiences = experiences[:limit_per_page]
                 logger.info(f"Limited to {limit_per_page} experiences per page")
-                # If limit is set, only process first page
-                if page_num == 1:
-                    pass  # Continue processing this page
-                else:
-                    break  # Skip remaining pages
+                # For testing pagination: process first 2 pages only when limit is set
+                if page_num > 2:
+                    logger.info(f"Skipping remaining pages due to test limit")
+                    break
             
             # Process each detail page with progress bar
-            page_desc = f"Page {page_num}/{total_pages} of S1={base_listing_url.split('S1=')[1]}"
+            page_desc = f"S1={substance_id} Page {page_num}/{total_pages}"
+            page_experiences = []
+            
             for exp in tqdm(experiences, desc=page_desc):
                 # Be polite - random sleep between requests
                 time.sleep(random.uniform(MIN_SLEEP, MAX_SLEEP))
@@ -421,13 +541,24 @@ def main(limit_per_page=None):
                         full_exp = {**exp, **detail_data}
                         # Remove detail_url as it's not in final schema
                         full_exp.pop('detail_url', None)
+                        
+                        # Track the experience ID if available
+                        if full_exp.get('id'):
+                            progress.add_experience(full_exp['id'])
+                        
                         all_experiences.append(full_exp)
+                        page_experiences.append(full_exp)
                     except Exception as e:
                         logger.error(f"Failed to parse detail page {exp.get('detail_url')}: {e}")
                         # Still add the listing data even if detail parsing fails
                         full_exp = exp.copy()
                         full_exp.pop('detail_url', None)
                         all_experiences.append(full_exp)
+                        page_experiences.append(full_exp)
+            
+            # Mark page as completed
+            progress.mark_page_completed(substance_id, page_num, len(page_experiences))
+            logger.info(f"Completed S1={substance_id} page {page_num}/{total_pages} - {len(page_experiences)} experiences")
     
     logger.info(f"Total experiences scraped: {len(all_experiences)}")
     
@@ -477,14 +608,25 @@ def main(limit_per_page=None):
 
 if __name__ == "__main__":
     import sys
-    # Check if a limit was provided as command line argument
-    if len(sys.argv) > 1:
-        try:
-            limit = int(sys.argv[1])
-            logger.info(f"Running with limit of {limit} experiences per page")
-            main(limit_per_page=limit)
-        except ValueError:
-            logger.error("Invalid limit value. Please provide an integer.")
+    
+    # Parse command line arguments
+    limit_per_page = None
+    clear_progress = False
+    
+    for arg in sys.argv[1:]:
+        if arg == "--clear-progress":
+            clear_progress = True
+        elif arg.isdigit():
+            limit_per_page = int(arg)
+        else:
+            print("Usage: python erowid_scraper.py [limit] [--clear-progress]")
+            print("  limit: Optional number to limit experiences per page (for testing)")
+            print("  --clear-progress: Start fresh by clearing existing progress")
             sys.exit(1)
-    else:
-        main()
+    
+    if limit_per_page:
+        logger.info(f"Running with limit of {limit_per_page} experiences per page")
+    if clear_progress:
+        logger.info("Will clear existing progress and start fresh")
+    
+    main(limit_per_page=limit_per_page, clear_progress=clear_progress)

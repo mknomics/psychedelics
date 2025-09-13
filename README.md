@@ -1,169 +1,237 @@
 # Erowid Experience Reports Scraper
 
-A production-quality Python scraper for extracting user experience reports from Erowid.org. This tool systematically collects experience reports from three specific substance categories and exports them to a structured CSV format.
+A production-quality Python scraper for extracting user experience reports from Erowid.org with comprehensive progress tracking and resume capabilities. This tool systematically collects experience reports from three specific substance categories and exports them to a structured CSV format.
 
-## Features
+## ✨ Key Features
 
-- **Comprehensive Data Extraction**: Scrapes experience reports including narratives, dosage information, user demographics, and metadata
-- **Pagination Support**: Automatically detects and processes all available pages for each substance category
-- **Robust Error Handling**: Includes retry logic, timeout handling, and graceful error recovery
-- **Polite Scraping**: Implements delays between requests to avoid overwhelming the server
-- **Progress Tracking**: Visual progress bars show scraping status
-- **Structured Output**: Exports data to CSV with 42 standardized columns
+- **🔄 Resume Capability**: Automatically saves progress and resumes from interruptions
+- **📊 Comprehensive Data**: Scrapes 42+ data fields including narratives, dosage, demographics
+- **📖 Full Pagination**: Processes all available pages (~6,200 total experiences)  
+- **🛡️ Robust Error Handling**: Retry logic, timeout handling, graceful failure recovery
+- **🎯 Polite Scraping**: Rate limiting with 1-3 second delays between requests
+- **📈 Progress Tracking**: Visual progress bars and detailed logging
+- **📁 Structured Export**: Clean CSV output with standardized 42-column schema
 
-## Data Collected
+## 📋 Data Collected
 
-The scraper extracts the following information from each experience report:
+### Basic Information (12 fields)
+- **Report Details**: Title, Author, Experience Rating, Report ID, View Count
+- **Timing**: Publication Date, Experience Date  
+- **Demographics**: Gender, Age at Experience
+- **Physical**: Body Weight (numeric value + unit)
+- **Content**: Full experience narrative text
 
-### Basic Information
-- Title, Author, Experience Rating
-- Publication Date, Experience Date
-- Gender, Age at Experience
-- Body Weight (value and unit)
-- View Count, Report ID
+### Dosage Information (30 fields)
+For up to 10 substances per report:
+- **Substance**: Name/type (e.g., "LSD", "Psilocybe cubensis")
+- **Dose**: Amount (e.g., "100 μg", "3.5 g")  
+- **Method**: Administration route (e.g., "oral", "insufflated")
 
-### Dosage Information
-- Up to 10 substances with:
-  - Substance name
-  - Dose amount
-  - Administration method
-
-### Narrative
-- Full experience report text
-
-## Installation
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.11 or higher
-- pip package manager
+- **Python**: 3.11 or higher
+- **Platform**: Windows, macOS, or Linux
+- **Memory**: 2GB+ RAM recommended for full dataset
 
-### Setup
+### Installation
 
-1. Clone or download this project
+1. **Download/Clone** this project to your local machine
 
-2. Create a virtual environment:
+2. **Create Virtual Environment**:
 ```bash
 python3 -m venv webscraping_env
-source webscraping_env/bin/activate  # On Windows: webscraping_env\Scripts\activate
+source webscraping_env/bin/activate  # Linux/Mac
+# OR
+webscraping_env\Scripts\activate     # Windows
 ```
 
-3. Install dependencies:
+3. **Install Dependencies**:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+## 📖 Usage Guide
 
-### Basic Usage
-
-Run the full scraper to collect all available experiences:
+### Full Scraping (Recommended)
 ```bash
 python erowid_scraper.py
 ```
+- Scrapes **~6,200 experiences** across all pages
+- **Duration**: 5-6 hours (depends on network speed)
+- **Resumable**: If interrupted, simply run again to continue
 
-**Note**: Full scraping will collect approximately 6,200 experiences and may take 5-6 hours to complete.
+### Resume from Interruption
+```bash
+python erowid_scraper.py
+```
+If scraping was interrupted, the script will automatically:
+- ✅ Load previous progress from `scraping_progress.json`
+- ✅ Skip already-completed pages
+- ✅ Continue from where it left off
+- ✅ Show detailed resume information
+
+### Start Fresh (Clear Progress)
+```bash
+python erowid_scraper.py --clear-progress
+```
+Forces a fresh start by clearing all previous progress.
 
 ### Test Mode
-
-To test with a limited number of experiences per page:
 ```bash
-python erowid_scraper.py 5  # Scrapes only 5 experiences per page
+python erowid_scraper.py 5
+```
+Limits scraping to 5 experiences per page for testing (processes 2 pages per substance).
+
+### Test with Fresh Start
+```bash
+python erowid_scraper.py 5 --clear-progress
 ```
 
-This is useful for testing the scraper functionality without waiting for the full dataset.
+## 📁 Output Files
 
-## Output
-
-The scraper creates a file named `erowid_experiences.csv` with 42 columns:
-
-### Column Structure
+### `erowid_experiences.csv`
+Main output file with **42 columns** in exact order:
 ```
 title, author, date_experience, date_published, gender, age_experience, 
 experience_rating, weight_val, weight_scale, text, id, number_views,
-substance_1, dose_1, method_1, ..., substance_10, dose_10, method_10
+substance_1, dose_1, method_1, substance_2, dose_2, method_2, ...,
+substance_10, dose_10, method_10
 ```
 
-### Data Types
-- **Dates**: datetime format (pandas datetime64)
-- **Numeric**: id (int), number_views (int), weight_val (float)
-- **Text**: All other fields as strings
+### `scraping_progress.json`
+Progress tracking file containing:
+- Session timestamps and completion status
+- List of completed pages per substance  
+- Total experiences scraped
+- Individual experience IDs (prevents duplicates)
 
-## Scope
+**Example**:
+```json
+{
+  "session_start": "2025-09-13T12:22:14.038587",
+  "last_updated": "2025-09-13T12:22:36.716796",
+  "completed_pages": ["39_page_1", "39_page_2", "2_page_1"],
+  "total_scraped": 150,
+  "substance_progress": {
+    "39": {"completed_pages": 15, "experiences_scraped": 1500},
+    "2": {"completed_pages": 12, "experiences_scraped": 1200}
+  }
+}
+```
 
-The scraper targets three specific substance categories identified by their Erowid IDs:
-- **S1=39**: ~3,400 experiences (34 pages)
-- **S1=2**: ~2,600 experiences (27 pages)
-- **S1=8**: ~200 experiences (2 pages)
+## 🎯 Data Scope
 
-Total: Approximately 6,200 experience reports
+The scraper targets three Erowid substance categories:
 
-## Technical Details
+| Substance ID | Pages | Experiences | Est. Duration |
+|--------------|-------|-------------|---------------|
+| **S1=39**    | 34    | ~3,400      | 3-4 hours     |
+| **S1=2**     | 27    | ~2,700      | 2-3 hours     |
+| **S1=8**     | 2     | ~200        | 10-15 minutes |
+| **Total**    | **63**| **~6,300**  | **5-6 hours** |
 
-### Pagination
-The scraper automatically:
-1. Detects the total number of pages for each substance
-2. Iterates through all pages using URL parameters (Start=0, Start=100, etc.)
-3. Processes 100 experiences per page
+## 🔧 Technical Implementation
 
-### Rate Limiting
-- Random delay of 1-3 seconds between requests
-- HTTP retry adapter with exponential backoff
-- Timeout of 30 seconds per request
+### Data Processing Pipeline
+1. **Page Discovery**: Detects total pages per substance via pagination analysis
+2. **Listing Extraction**: Parses experience tables to get basic info + detail URLs
+3. **Detail Scraping**: Fetches individual experience pages for full data
+4. **Data Cleaning**: Type conversion, date parsing, weight normalization
+5. **Progress Tracking**: Saves checkpoint after each completed page
+6. **CSV Export**: Structured output with proper encoding
 
-### SSL Handling
-The scraper disables SSL verification for Erowid due to certificate issues. This is acceptable for public data scraping but should not be used for sensitive applications.
+### Rate Limiting & Politeness
+- **Request Delay**: Random 1-3 seconds between requests
+- **Retry Logic**: 3 attempts with exponential backoff
+- **Timeout**: 30-second limit per request
+- **SSL Handling**: Graceful handling of Erowid's certificate issues
+- **User Agent**: Desktop browser identification
 
-## Error Handling
+### Error Recovery
+- **Page-Level**: Continues if individual pages fail
+- **Experience-Level**: Saves partial data for failed detail extractions  
+- **Session-Level**: Resumable via progress file
+- **Logging**: Detailed error tracking for debugging
 
-The scraper includes robust error handling:
-- Retries failed requests up to 3 times
-- Continues scraping even if individual detail pages fail
-- Logs all errors for debugging
-- Saves partial data even if some fields are missing
+## 🔍 Data Quality & Types
 
-## Logging
+### Parsed Data Types
+- **Dates**: `datetime64[ns]` (pandas datetime)
+- **Numeric**: `int64` (id, views), `float64` (weight_val)
+- **Text**: `object` (all string fields, nullable)
 
-The scraper provides detailed logging including:
-- Progress updates for each page and substance
-- Error messages for failed requests
-- Summary statistics upon completion
+### Data Completeness
+- **Guaranteed Fields**: title, author (from listing pages)
+- **Best-Effort Fields**: All detail page fields (may be None if parsing fails)
+- **Validation**: Automatic type checking and missing field reporting
 
-## Dependencies
+## 🛠️ Dependencies
 
-- **requests**: HTTP library for web requests
-- **beautifulsoup4**: HTML parsing and data extraction
-- **lxml**: Fast XML/HTML parser backend
-- **pandas**: Data manipulation and CSV export
-- **python-dateutil**: Flexible date parsing
-- **tqdm**: Progress bar visualization
+| Package | Version | Purpose |
+|---------|---------|---------|
+| **requests** | 2.32.5 | HTTP client with retry support |
+| **beautifulsoup4** | 4.13.5 | HTML parsing and data extraction |  
+| **pandas** | 2.3.2 | Data manipulation and CSV export |
+| **lxml** | 6.0.1 | Fast XML/HTML parser backend |
+| **python-dateutil** | 2.9.0+ | Flexible date parsing |
+| **tqdm** | 4.67.1 | Progress bars and status display |
+| **urllib3** | 2.5.0+ | HTTP connection pooling |
 
-## Ethical Considerations
+## 🚨 Troubleshooting
 
-This scraper:
-- Respects server resources with rate limiting
-- Only accesses publicly available data
-- Does not require authentication
-- Implements polite scraping practices
+### Common Issues
 
-## Troubleshooting
+**Q: Script stops with SSL errors**  
+**A**: This is automatically handled. The script disables SSL verification for Erowid.
 
-### SSL Certificate Errors
-The scraper automatically handles Erowid's SSL certificate issues. No manual intervention needed.
+**Q: Script seems stuck or slow**  
+**A**: This is normal. Each page takes ~2-3 seconds due to polite rate limiting.
 
-### Memory Issues
-For systems with limited memory, consider:
-- Running the scraper with smaller batches using the limit parameter
-- Processing one substance at a time by modifying the listing_urls in the script
+**Q: I need to stop and resume later**  
+**A**: Just Ctrl+C to stop, then run `python erowid_scraper.py` to resume.
 
-### Incomplete Data
-If the scraper is interrupted:
-- The CSV file will contain all successfully scraped experiences up to that point
-- You can modify the script to resume from a specific page if needed
+**Q: Want to start over completely**  
+**A**: Use `python erowid_scraper.py --clear-progress`
 
-## License
+**Q: Memory issues on large dataset**  
+**A**: The script processes data incrementally, but if issues persist, try processing with limits first.
 
-This scraper is provided for educational and research purposes. Please respect Erowid's terms of service and use the data responsibly.
+**Q: Some experiences have missing fields**  
+**A**: This is normal. Not all experience reports have complete information (e.g., missing dose charts).
 
-## Support
+### Resume Verification
 
-For issues or questions about the scraper, please refer to the inline documentation in `erowid_scraper.py`.
+When resuming, look for log messages like:
+```
+INFO - Resuming previous session:
+INFO -   Completed pages: 15
+INFO -   Experiences scraped: 1500  
+INFO - Skipping S1=39 page 1/34 - already completed
+```
+
+## ⚖️ Ethical Usage
+
+This scraper follows ethical practices:
+- ✅ **Public Data Only**: Scrapes publicly accessible experience reports
+- ✅ **Rate Limited**: Respectful delays to avoid server overload  
+- ✅ **No Authentication**: Does not bypass any access controls
+- ✅ **Educational Purpose**: Intended for research and analysis
+
+**Please**: Respect Erowid's terms of service and use the data responsibly for legitimate research purposes.
+
+## 📞 Support
+
+- **Documentation**: Complete inline code documentation in `erowid_scraper.py`
+- **Logging**: Detailed console output shows progress and any issues
+- **Progress File**: Check `scraping_progress.json` for session details
+- **CSV Validation**: Script reports data completeness and column structure
+
+## 🎯 Perfect For
+
+- **Researchers**: Studying substance experience patterns
+- **Data Scientists**: Large-scale text analysis of trip reports  
+- **Academic Studies**: Quantitative analysis of psychoactive experiences
+- **Personal Projects**: Building datasets for machine learning applications
+
+**Start your comprehensive Erowid data collection today!** 🚀

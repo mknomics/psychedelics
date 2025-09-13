@@ -1,0 +1,35 @@
+{
+  "session_start": "2025-09-13T12:22:14.038587",
+  "last_updated": "2025-09-13T12:22:36.716796",
+  "completed_pages": [
+    "39_page_1",
+    "39_page_2",
+    "2_page_1",
+    "2_page_2",
+    "8_page_1",
+    "8_page_2"
+  ],
+  "completed_experiences": [
+    117453,
+    117642,
+    110123,
+    95492,
+    91566,
+    80646
+  ],
+  "total_scraped": 6,
+  "substance_progress": {
+    "39": {
+      "completed_pages": 2,
+      "experiences_scraped": 2
+    },
+    "2": {
+      "completed_pages": 2,
+      "experiences_scraped": 2
+    },
+    "8": {
+      "completed_pages": 2,
+      "experiences_scraped": 2
+    }
+  }
+}
