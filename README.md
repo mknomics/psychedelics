@@ -12,6 +12,38 @@ A production-quality Python scraper for extracting user experience reports from 
 - **Progress Tracking**: Visual progress bars and detailed logging
 - **Structured Export**: Clean CSV output with standardized 43-column schema
 
+## Output Variables
+
+### Complete 43-Column Schema
+
+| Column | Type | Description | Example |
+|--------|------|-------------|---------|
+| **title** | string | Experience report title | "First Time with the Sacred Mushroom" |
+| **author** | string | Username of report author | "PsychonautExplorer" |
+| **date_experience** | datetime | Date when experience occurred | "2023-03-15" |
+| **date_published** | datetime | Date when report was published | "2023-04-01" |
+| **gender** | string | Gender of experience author | "Male", "Female", "Not Specified" |
+| **age_experience** | integer | Age at time of experience | 25 |
+| **experience_rating** | string | Overall experience rating | "Positive", "Difficult", "Transforming" |
+| **weight_val** | float | Body weight value | 70.5 |
+| **weight_scale** | string | Weight measurement unit | "kg", "lb" |
+| **text** | string | Full experience narrative | Complete trip report text |
+| **id** | integer | Unique Erowid experience ID | 117453 |
+| **number_views** | integer | Number of times report was viewed | 1247 |
+| **sid** | integer | Substance category ID | 8, 2, or 39 |
+| **substance_1** through **substance_10** | string | Names of substances used | "LSD", "Psilocybe cubensis", "Cannabis" |
+| **dose_1** through **dose_10** | string | Dosage amounts | "100 μg", "3.5 g", "2 hits" |
+| **method_1** through **method_10** | string | Administration methods | "oral", "insufflated", "smoked" |
+
+### Substance ID (sid) Categories
+
+| SID | Substance | Description |
+|-----|-----------|-------------|
+| **8** | Ayahuasca | Traditional Amazonian brew containing DMT |
+| **2** | LSD | Lysergic acid diethylamide |
+| **39** | Mushrooms | Psilocybin-containing mushrooms |
+
+
 ## Data Collected
 
 ### Basic Information (13 fields)
@@ -227,35 +259,3 @@ This scraper follows ethical practices:
 - **Progress File**: Check `scraping_progress.json` for session details
 - **CSV Validation**: Script reports data completeness and column structure
 
-## Output Variables
-
-### Complete 43-Column Schema
-
-| Column | Type | Description | Example |
-|--------|------|-------------|---------|
-| **title** | string | Experience report title | "First Time with the Sacred Mushroom" |
-| **author** | string | Username of report author | "PsychonautExplorer" |
-| **date_experience** | datetime | Date when experience occurred | "2023-03-15" |
-| **date_published** | datetime | Date when report was published | "2023-04-01" |
-| **gender** | string | Gender of experience author | "Male", "Female", "Not Specified" |
-| **age_experience** | integer | Age at time of experience | 25 |
-| **experience_rating** | string | Overall experience rating | "Positive", "Difficult", "Transforming" |
-| **weight_val** | float | Body weight value | 70.5 |
-| **weight_scale** | string | Weight measurement unit | "kg", "lb" |
-| **text** | string | Full experience narrative | Complete trip report text |
-| **id** | integer | Unique Erowid experience ID | 117453 |
-| **number_views** | integer | Number of times report was viewed | 1247 |
-| **sid** | integer | Substance category ID | 8, 2, or 39 |
-| **substance_1** through **substance_10** | string | Names of substances used | "LSD", "Psilocybe cubensis", "Cannabis" |
-| **dose_1** through **dose_10** | string | Dosage amounts | "100 μg", "3.5 g", "2 hits" |
-| **method_1** through **method_10** | string | Administration methods | "oral", "insufflated", "smoked" |
-
-### Substance ID (sid) Categories
-
-| SID | Substance | Description |
-|-----|-----------|-------------|
-| **8** | Ayahuasca | Traditional Amazonian brew containing DMT |
-| **2** | LSD | Lysergic acid diethylamide |
-| **39** | Mushrooms | Psilocybin-containing mushrooms |
-
-**Start your comprehensive Erowid data collection today!**
