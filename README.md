@@ -2,20 +2,20 @@
 
 A production-quality Python scraper for extracting user experience reports from Erowid.org with comprehensive progress tracking and resume capabilities. This tool systematically collects experience reports from three specific substance categories and exports them to a structured CSV format.
 
-##  Key Features
+## Key Features
 
 - **Resume Capability**: Automatically saves progress and resumes from interruptions
-- ** Comprehensive Data**: Scrapes 42+ data fields including narratives, dosage, demographics
-- ** Full Pagination**: Processes all available pages (~6,200 total experiences)  
-- ** Robust Error Handling**: Retry logic, timeout handling, graceful failure recovery
-- ** Polite Scraping**: Rate limiting with 1-3 second delays between requests
-- ** Progress Tracking**: Visual progress bars and detailed logging
-- ** Structured Export**: Clean CSV output with standardized 42-column schema
+- **Comprehensive Data**: Scrapes 43 data fields including narratives, dosage, demographics
+- **Full Pagination**: Processes all available pages (~6,200 total experiences)  
+- **Robust Error Handling**: Retry logic, timeout handling, graceful failure recovery
+- **Polite Scraping**: Rate limiting with 1-3 second delays between requests
+- **Progress Tracking**: Visual progress bars and detailed logging
+- **Structured Export**: Clean CSV output with standardized 43-column schema
 
-##  Data Collected
+## Data Collected
 
-### Basic Information (12 fields)
-- **Report Details**: Title, Author, Experience Rating, Report ID, View Count
+### Basic Information (13 fields)
+- **Report Details**: Title, Author, Experience Rating, Report ID, View Count, Substance ID (sid)
 - **Timing**: Publication Date, Experience Date  
 - **Demographics**: Gender, Age at Experience
 - **Physical**: Body Weight (numeric value + unit)
@@ -27,7 +27,7 @@ For up to 10 substances per report:
 - **Dose**: Amount (e.g., "100 μg", "3.5 g")  
 - **Method**: Administration route (e.g., "oral", "insufflated")
 
-##  Quick Start
+## Quick Start
 
 ### Prerequisites
 - **Python**: 3.11 or higher
@@ -51,7 +51,7 @@ webscraping_env\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
 
-##  Usage Guide
+## Usage Guide
 
 ### Full Scraping (Recommended)
 ```bash
@@ -66,10 +66,10 @@ python erowid_scraper.py
 python erowid_scraper.py
 ```
 If scraping was interrupted, the script will automatically:
--  Load previous progress from `scraping_progress.json`
--  Skip already-completed pages
--  Continue from where it left off
--  Show detailed resume information
+- Load previous progress from `scraping_progress.json`
+- Skip already-completed pages
+- Continue from where it left off
+- Show detailed resume information
 
 ### Start Fresh (Clear Progress)
 ```bash
@@ -88,13 +88,13 @@ Limits scraping to 5 experiences per page for testing (processes 2 pages per sub
 python erowid_scraper.py 5 --clear-progress
 ```
 
-##  Output Files
+## Output Files
 
 ### `erowid_experiences.csv`
-Main output file with **42 columns** in exact order:
+Main output file with **43 columns** in exact order:
 ```
 title, author, date_experience, date_published, gender, age_experience, 
-experience_rating, weight_val, weight_scale, text, id, number_views,
+experience_rating, weight_val, weight_scale, text, id, number_views, sid,
 substance_1, dose_1, method_1, substance_2, dose_2, method_2, ...,
 substance_10, dose_10, method_10
 ```
@@ -131,7 +131,7 @@ The scraper targets three Erowid substance categories:
 | **S1=8**     | 2     | ~200        | 10-15 minutes |
 | **Total**    | **63**| **~6,300**  | **5-6 hours** |
 
-##  Technical Implementation
+## Technical Implementation
 
 ### Data Processing Pipeline
 1. **Page Discovery**: Detects total pages per substance via pagination analysis
@@ -154,7 +154,7 @@ The scraper targets three Erowid substance categories:
 - **Session-Level**: Resumable via progress file
 - **Logging**: Detailed error tracking for debugging
 
-##  Data Quality & Types
+## Data Quality & Types
 
 ### Parsed Data Types
 - **Dates**: `datetime64[ns]` (pandas datetime)
@@ -178,7 +178,7 @@ The scraper targets three Erowid substance categories:
 | **tqdm** | 4.67.1 | Progress bars and status display |
 | **urllib3** | 2.5.0+ | HTTP connection pooling |
 
-##  Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -210,13 +210,13 @@ INFO -   Experiences scraped: 1500
 INFO - Skipping S1=39 page 1/34 - already completed
 ```
 
-##  Ethical Usage
+## Ethical Usage
 
 This scraper follows ethical practices:
--  **Public Data Only**: Scrapes publicly accessible experience reports
--  **Rate Limited**: Respectful delays to avoid server overload  
--  **No Authentication**: Does not bypass any access controls
--  **Educational Purpose**: Intended for research and analysis
+- **Public Data Only**: Scrapes publicly accessible experience reports
+- **Rate Limited**: Respectful delays to avoid server overload  
+- **No Authentication**: Does not bypass any access controls
+- **Educational Purpose**: Intended for research and analysis
 
 **Please**: Respect Erowid's terms of service and use the data responsibly for legitimate research purposes.
 
@@ -227,4 +227,35 @@ This scraper follows ethical practices:
 - **Progress File**: Check `scraping_progress.json` for session details
 - **CSV Validation**: Script reports data completeness and column structure
 
+## Output Variables
 
+### Complete 43-Column Schema
+
+| Column | Type | Description | Example |
+|--------|------|-------------|---------|
+| **title** | string | Experience report title | "First Time with the Sacred Mushroom" |
+| **author** | string | Username of report author | "PsychonautExplorer" |
+| **date_experience** | datetime | Date when experience occurred | "2023-03-15" |
+| **date_published** | datetime | Date when report was published | "2023-04-01" |
+| **gender** | string | Gender of experience author | "Male", "Female", "Not Specified" |
+| **age_experience** | integer | Age at time of experience | 25 |
+| **experience_rating** | string | Overall experience rating | "Positive", "Difficult", "Transforming" |
+| **weight_val** | float | Body weight value | 70.5 |
+| **weight_scale** | string | Weight measurement unit | "kg", "lb" |
+| **text** | string | Full experience narrative | Complete trip report text |
+| **id** | integer | Unique Erowid experience ID | 117453 |
+| **number_views** | integer | Number of times report was viewed | 1247 |
+| **sid** | integer | Substance category ID | 8, 2, or 39 |
+| **substance_1** through **substance_10** | string | Names of substances used | "LSD", "Psilocybe cubensis", "Cannabis" |
+| **dose_1** through **dose_10** | string | Dosage amounts | "100 μg", "3.5 g", "2 hits" |
+| **method_1** through **method_10** | string | Administration methods | "oral", "insufflated", "smoked" |
+
+### Substance ID (sid) Categories
+
+| SID | Substance | Description |
+|-----|-----------|-------------|
+| **8** | Ayahuasca | Traditional Amazonian brew containing DMT |
+| **2** | LSD | Lysergic acid diethylamide |
+| **39** | Mushrooms | Psilocybin-containing mushrooms |
+
+**Start your comprehensive Erowid data collection today!**

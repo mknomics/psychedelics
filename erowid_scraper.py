@@ -542,6 +542,9 @@ def main(limit_per_page=None, clear_progress=False):
                         # Remove detail_url as it's not in final schema
                         full_exp.pop('detail_url', None)
                         
+                        # Add substance ID (sid) to track which substance category this belongs to
+                        full_exp['sid'] = substance_id
+                        
                         # Track the experience ID if available
                         if full_exp.get('id'):
                             progress.add_experience(full_exp['id'])
@@ -553,6 +556,8 @@ def main(limit_per_page=None, clear_progress=False):
                         # Still add the listing data even if detail parsing fails
                         full_exp = exp.copy()
                         full_exp.pop('detail_url', None)
+                        # Add substance ID even for failed detail parsing
+                        full_exp['sid'] = substance_id
                         all_experiences.append(full_exp)
                         page_experiences.append(full_exp)
             
@@ -566,7 +571,7 @@ def main(limit_per_page=None, clear_progress=False):
     columns = [
         'title', 'author', 'date_experience', 'date_published', 'gender', 
         'age_experience', 'experience_rating', 'weight_val', 'weight_scale', 
-        'text', 'id', 'number_views'
+        'text', 'id', 'number_views', 'sid'
     ]
     
     # Add dose columns
@@ -596,7 +601,7 @@ def main(limit_per_page=None, clear_progress=False):
     print(df.head(3))
     
     # Validation
-    print(f"\nTotal columns: {len(df.columns)} (expected 42)")
+    print(f"\nTotal columns: {len(df.columns)} (expected 43)")
     print(f"Total rows: {len(df)}")
     
     # Check for required fields
