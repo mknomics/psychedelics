@@ -120,7 +120,7 @@ Progress tracking file containing:
 }
 ```
 
-## 🎯 Data Scope
+## Data Scope
 
 The scraper targets three Erowid substance categories:
 
